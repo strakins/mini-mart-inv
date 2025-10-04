@@ -4,7 +4,7 @@ import UserManagement from '../components/UserManagement';
 import SalesReport from '../components/SalesReport';
 import CurrencySettings from '../components/CurrencySettings';
 import { getDashboardStats } from '../utils/dashboardStats';
-import { useCurrency } from '../context/CurrencyContext'; // Add this import
+import { useCurrency } from '../context/CurrencyContext';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -16,7 +16,8 @@ const AdminDashboard = () => {
     recentSales: []
   });
   const [loading, setLoading] = useState(true);
-  const { formatCurrency } = useCurrency(); // Add this
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { formatCurrency } = useCurrency();
 
   useEffect(() => {
     loadDashboardData();
@@ -31,10 +32,10 @@ const AdminDashboard = () => {
 
   const tabs = [
     { id: 'dashboard', name: 'Dashboard', icon: '📊' },
-    { id: 'products', name: 'Product Management', icon: '📦' },
-    { id: 'users', name: 'User Management', icon: '👥' },
-    { id: 'sales', name: 'Sales Report', icon: '💰' },
-    { id: 'currency', name: 'Currency Settings', icon: '💱' },
+    { id: 'products', name: 'Products', icon: '📦' },
+    { id: 'users', name: 'Users', icon: '👥' },
+    { id: 'sales', name: 'Sales', icon: '💰' },
+    { id: 'currency', name: 'Currency', icon: '💱' },
   ];
 
   const renderContent = () => {
@@ -53,12 +54,12 @@ const AdminDashboard = () => {
   };
 
   const DashboardOverview = () => (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Admin Dashboard Overview</h2>
+    <div className="p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+        <h2 className="text-2xl font-bold">Admin Dashboard</h2>
         <button
           onClick={loadDashboardData}
-          className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
+          className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 text-sm sm:text-base"
         >
           Refresh Data
         </button>
@@ -68,107 +69,84 @@ const AdminDashboard = () => {
         <div className="text-center py-8">Loading dashboard data...</div>
       ) : (
         <>
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div className="bg-white rounded-lg shadow p-6">
+          {/* Stats Cards - Responsive grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+            <div className="bg-white rounded-lg shadow p-4 sm:p-6">
               <div className="flex items-center">
-                <div className="p-3 bg-blue-100 rounded-lg mr-4">
-                  <span className="text-2xl">👥</span>
+                <div className="p-2 sm:p-3 bg-blue-100 rounded-lg mr-3 sm:mr-4">
+                  <span className="text-xl sm:text-2xl">👥</span>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Total Users</p>
-                  <p className="text-2xl font-bold">{stats.totalUsers}</p>
+                  <p className="text-xl sm:text-2xl font-bold">{stats.totalUsers}</p>
                 </div>
               </div>
             </div>
             
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="bg-white rounded-lg shadow p-4 sm:p-6">
               <div className="flex items-center">
-                <div className="p-3 bg-green-100 rounded-lg mr-4">
-                  <span className="text-2xl">📦</span>
+                <div className="p-2 sm:p-3 bg-green-100 rounded-lg mr-3 sm:mr-4">
+                  <span className="text-xl sm:text-2xl">📦</span>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Total Products</p>
-                  <p className="text-2xl font-bold">{stats.totalProducts}</p>
+                  <p className="text-xl sm:text-2xl font-bold">{stats.totalProducts}</p>
                 </div>
               </div>
             </div>
             
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="bg-white rounded-lg shadow p-4 sm:p-6">
               <div className="flex items-center">
-                <div className="p-3 bg-purple-100 rounded-lg mr-4">
-                  <span className="text-2xl">💰</span>
+                <div className="p-2 sm:p-3 bg-purple-100 rounded-lg mr-3 sm:mr-4">
+                  <span className="text-xl sm:text-2xl">💰</span>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Today's Revenue</p>
-                  <p className="text-2xl font-bold">{formatCurrency(stats.todaysRevenue)}</p> {/* Updated */}
+                  <p className="text-xl sm:text-2xl font-bold">{formatCurrency(stats.todaysRevenue)}</p>
                 </div>
               </div>
             </div>
             
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="bg-white rounded-lg shadow p-4 sm:p-6">
               <div className="flex items-center">
-                <div className="p-3 bg-red-100 rounded-lg mr-4">
-                  <span className="text-2xl">⚠️</span>
+                <div className="p-2 sm:p-3 bg-red-100 rounded-lg mr-3 sm:mr-4">
+                  <span className="text-xl sm:text-2xl">⚠️</span>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Low Stock Items</p>
-                  <p className="text-2xl font-bold">{stats.lowStockItems}</p>
+                  <p className="text-sm text-gray-600">Low Stock</p>
+                  <p className="text-xl sm:text-2xl font-bold">{stats.lowStockItems}</p>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {/* Quick Actions */}
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="bg-white rounded-lg shadow p-4 sm:p-6">
               <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
-              <div className="space-y-3">
-                <button 
-                  onClick={() => setActiveTab('products')}
-                  className="w-full text-left p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition duration-200"
-                >
-                  <div className="flex items-center">
-                    <span className="text-xl mr-3">📦</span>
-                    <div>
-                      <div className="font-medium">Manage Products</div>
-                      <div className="text-sm text-gray-600">Add, edit, or remove products</div>
+              <div className="space-y-2 sm:space-y-3">
+                {tabs.filter(tab => tab.id !== 'dashboard').map((tab) => (
+                  <button 
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className="w-full text-left p-3 sm:p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition duration-200"
+                  >
+                    <div className="flex items-center">
+                      <span className="text-lg sm:text-xl mr-3">{tab.icon}</span>
+                      <div>
+                        <div className="font-medium text-sm sm:text-base">{tab.name}</div>
+                        <div className="text-xs sm:text-sm text-gray-600">Manage {tab.name.toLowerCase()}</div>
+                      </div>
                     </div>
-                  </div>
-                </button>
-                
-                <button 
-                  onClick={() => setActiveTab('users')}
-                  className="w-full text-left p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition duration-200"
-                >
-                  <div className="flex items-center">
-                    <span className="text-xl mr-3">👥</span>
-                    <div>
-                      <div className="font-medium">Manage Users</div>
-                      <div className="text-sm text-gray-600">View and manage user accounts</div>
-                    </div>
-                  </div>
-                </button>
-                
-                <button 
-                  onClick={() => setActiveTab('sales')}
-                  className="w-full text-left p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition duration-200"
-                >
-                  <div className="flex items-center">
-                    <span className="text-xl mr-3">💰</span>
-                    <div>
-                      <div className="font-medium">Sales Reports</div>
-                      <div className="text-sm text-gray-600">View sales analytics and reports</div>
-                    </div>
-                  </div>
-                </button>
+                  </button>
+                ))}
               </div>
             </div>
 
             {/* Recent Sales */}
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="bg-white rounded-lg shadow p-4 sm:p-6">
               <h3 className="text-lg font-semibold mb-4">Recent Sales</h3>
-              <div className="space-y-3">
+              <div className="space-y-2 sm:space-y-3">
                 {stats.recentSales.length > 0 ? (
                   stats.recentSales.map((sale) => (
                     <div key={sale._id} className="border border-gray-200 rounded-lg p-3">
@@ -179,8 +157,8 @@ const AdminDashboard = () => {
                             {new Date(sale.createdAt).toLocaleDateString()}
                           </div>
                         </div>
-                        <div className="text-green-600 font-semibold">
-                          {formatCurrency(sale.totalAmount)} {/* Updated */}
+                        <div className="text-green-600 font-semibold text-sm sm:text-base">
+                          {formatCurrency(sale.totalAmount)}
                         </div>
                       </div>
                       <div className="text-xs text-gray-600 mt-1">
@@ -203,11 +181,11 @@ const AdminDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Tab Navigation */}
-      <div className="bg-white shadow-sm">
+      {/* Desktop Tab Navigation */}
+      <div className="bg-white shadow-sm hidden sm:block">
         <div className="max-w-7xl mx-auto">
           <div className="border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8 px-6">
+            <nav className="-mb-px flex space-x-4 sm:space-x-8 px-4 sm:px-6">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
@@ -224,6 +202,50 @@ const AdminDashboard = () => {
               ))}
             </nav>
           </div>
+        </div>
+      </div>
+
+      {/* Mobile Tab Navigation */}
+      <div className="bg-white shadow-sm sm:hidden">
+        <div className="border-b border-gray-200">
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="w-full flex justify-between items-center p-4 text-left"
+          >
+            <span className="font-medium">
+              {tabs.find(tab => tab.id === activeTab)?.name}
+            </span>
+            <svg 
+              className={`w-5 h-5 transition-transform ${isMobileMenuOpen ? 'transform rotate-180' : ''}`}
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          
+          {isMobileMenuOpen && (
+            <div className="border-t border-gray-200">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setActiveTab(tab.id);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`w-full text-left p-4 border-l-4 ${
+                    activeTab === tab.id
+                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                      : 'border-transparent text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  <span className="mr-3">{tab.icon}</span>
+                  {tab.name}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
