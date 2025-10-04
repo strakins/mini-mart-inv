@@ -36,7 +36,7 @@ const LandingPage = () => {
         <div className="text-center">
           <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold text-gray-900 mb-4 sm:mb-6">
             Streamline Your Store
-            <span className="text-indigo-600 block mt-2"> Inventory Management</span>
+            <span className="text-indigo-600 block mt-2">Strakins Inventory Management</span>
           </h1>
           <p className="text-base sm:text-xl text-gray-600 mb-6 sm:mb-8 max-w-3xl mx-auto px-4">
             Efficient inventory tracking, seamless sales processing, and comprehensive reporting 
