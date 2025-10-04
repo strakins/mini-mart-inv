@@ -5,25 +5,12 @@ require('dotenv').config();
 
 const app = express();
 
-// CORS configuration - Update with your actual Vercel URL
-const allowedOrigins = [
-  'http://localhost:3000',
-  'https://pos-strakins-projects.vercel.app', // Your Vercel frontend URL
-  'https://pos-b9nt4emqx-strakins-projects.vercel.app/' // If you have a custom domain
-];
-
+// CORS configuration for development
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = `The CORS policy for this site does not allow access from the specified Origin: ${origin}`;
-      console.log('CORS blocked origin:', origin);
-      return callback(new Error(msg), false);
-    }
-    return callback(null, true);
-  },
+  origin: [
+    'http://localhost:3000',
+    'https://pos-strakins-projects.vercel.app'
+  ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -44,7 +31,8 @@ app.get('/api/health', (req, res) => {
     status: 'OK', 
     message: 'Backend is working!',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV
+    environment: process.env.NODE_ENV,
+    database: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected'
   });
 });
 
@@ -57,23 +45,82 @@ app.get('/api/test-cors', (req, res) => {
   });
 });
 
-// 404 handler
-app.use('/api/*', (req, res) => {
+// FIXED: 404 handler - use proper middleware without path pattern
+app.use('/api', (req, res) => {
   res.status(404).json({ 
     message: 'API endpoint not found',
+    path: req.path,
+    method: req.method,
+    availableEndpoints: [
+      '/api/auth/login',
+      '/api/auth/register',
+      '/api/auth/health',
+      '/api/products',
+      '/api/sales',
+      '/api/users',
+      '/api/test-cors'
+    ]
+  });
+});
+
+// Catch-all 404 handler for non-API routes
+app.use((req, res) => {
+  res.status(404).json({ 
+    message: 'Route not found',
     path: req.path,
     method: req.method
   });
 });
 
-// MongoDB connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/inventory-app')
-  .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('MongoDB connection error:', err));
+// MongoDB connection with better error handling
+const connectDB = async () => {
+  try {
+    // Use local MongoDB for development
+    const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/inventory-app';
+    
+    console.log('Attempting to connect to MongoDB...');
+    console.log('MongoDB URI:', mongoURI.replace(/mongodb\+srv:\/\/[^@]+@/, 'mongodb+srv://***@')); // Hide password
+    
+    const conn = await mongoose.connect(mongoURI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV}`);
-  console.log(`CORS allowed origins: ${allowedOrigins.join(', ')}`);
+    console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+    console.log(`📊 Database: ${conn.connection.name}`);
+    
+    return conn;
+  } catch (error) {
+    console.error('❌ MongoDB connection error:', error.message);
+    console.log('💡 Tips:');
+    console.log('1. Make sure MongoDB is running locally: mongod');
+    console.log('2. Or check your MONGODB_URI in .env file');
+    console.log('3. For local development, use: mongodb://localhost:27017/inventory-app');
+    
+    // Don't exit in development, allow the server to start
+    if (process.env.NODE_ENV === 'production') {
+      process.exit(1);
+    }
+    throw error; // Re-throw to handle in the startup
+  }
+};
+
+// Connect to database and then start server
+connectDB().then(() => {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`📡 API URL: http://localhost:${PORT}/api`);
+    console.log(`🔧 Health check: http://localhost:${PORT}/api/health`);
+  });
+}).catch(error => {
+  console.error('❌ Failed to start server due to database connection error');
+  console.log('💡 Starting server in limited mode...');
+  
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT} (Limited mode - no database)`);
+    console.log('⚠️  Some features requiring database will not work');
+  });
 });
