@@ -22,6 +22,7 @@ const SalesPage = () => {
     try {
       const response = await axios.get('/api/products');
       setProducts(response.data);
+      console.log(response.data)
     } catch (error) {
       console.error('Error fetching products:', error);
       showToast.error('Failed to load products');

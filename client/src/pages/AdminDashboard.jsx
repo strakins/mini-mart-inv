@@ -13,8 +13,10 @@ const AdminDashboard = () => {
     totalProducts: 0,
     todaysRevenue: 0,
     lowStockItems: 0,
-    recentSales: []
+    recentSales: [] 
   });
+
+  
   const [loading, setLoading] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { formatCurrency } = useCurrency();
