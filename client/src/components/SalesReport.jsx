@@ -23,7 +23,7 @@ const SalesReport = () => {
       if (filter.startDate) params.startDate = filter.startDate;
       if (filter.endDate) params.endDate = filter.endDate;
 
-      const response = await axios.get('/api/sales/report', { params });
+      const response = await axios.get('/sales/report', { params });
       setSales(response.data);
     } catch (error) {
       console.error('Error fetching sales:', error);
