@@ -17,7 +17,7 @@ const UserManagement = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get('/api/users');
+      const response = await axios.get('/users');
       setUsers(response.data);
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -28,7 +28,7 @@ const UserManagement = () => {
   const fetchUserSales = async (userId) => {
     try {
       setLoading(true);
-      const response = await axios.get(`/api/users/${userId}/sales`);
+      const response = await axios.get(`/users/${userId}/sales`);
       setUserSales(response.data.sales);
       setSalesStats(response.data.statistics);
       setSelectedUser(users.find(user => user._id === userId));
@@ -42,7 +42,7 @@ const UserManagement = () => {
 
   const updateUserRole = async (userId, newRole) => {
     try {
-      await axios.put(`/api/users/${userId}/role`, { role: newRole });
+      await axios.put(`/users/${userId}/role`, { role: newRole });
       fetchUsers();
       if (selectedUser && selectedUser._id === userId) {
         setSelectedUser({ ...selectedUser, role: newRole });
@@ -56,7 +56,7 @@ const UserManagement = () => {
 
   const toggleUserStatus = async (userId, currentStatus) => {
     try {
-      await axios.put(`/api/users/${userId}/status`, { isActive: !currentStatus });
+      await axios.put(`/users/${userId}/status`, { isActive: !currentStatus });
       fetchUsers();
       showToast.success(`User ${!currentStatus ? 'activated' : 'deactivated'}`);
     } catch (error) {

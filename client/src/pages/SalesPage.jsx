@@ -20,7 +20,7 @@ const SalesPage = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await axios.get('/api/products');
+      const response = await axios.get('/products');
       setProducts(response.data);
       console.log(response.data)
     } catch (error) {
@@ -36,7 +36,7 @@ const SalesPage = () => {
     }
 
     try {
-      const response = await axios.get(`/api/products/search?q=${searchTerm}`);
+      const response = await axios.get(`/products/search?q=${searchTerm}`);
       setProducts(response.data);
     } catch (error) {
       console.error('Error searching products:', error);
@@ -99,7 +99,7 @@ const SalesPage = () => {
     const loadingToast = showToast.loading('Processing sale...');
 
     try {
-      const response = await axios.post('/api/sales', {
+      const response = await axios.post('/sales', {
         items: cart,
         paymentMethod: 'cash'
       });
