@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useCurrency } from '../context/CurrencyContext';
 import { showToast } from '../utils/toast';
+import Loader from './Loader'; // Import your Loader component
 
 const SalesReport = () => {
   const [sales, setSales] = useState([]);
@@ -9,7 +10,7 @@ const SalesReport = () => {
     startDate: '',
     endDate: ''
   });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // Changed to true initially
   const { formatCurrency } = useCurrency();
 
   useEffect(() => {
@@ -86,14 +87,16 @@ const SalesReport = () => {
           <div className="flex items-end space-x-2">
             <button
               type="submit"
-              className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 text-sm"
+              disabled={loading}
+              className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50 text-sm"
             >
-              Apply Filter
+              {loading ? 'Loading...' : 'Apply Filter'}
             </button>
             <button
               type="button"
               onClick={clearFilter}
-              className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 text-sm"
+              disabled={loading}
+              className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 disabled:opacity-50 text-sm"
             >
               Clear
             </button>
@@ -102,27 +105,47 @@ const SalesReport = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6">
-        <div className="bg-white p-4 sm:p-6 rounded-lg shadow">
-          <div className="text-xl sm:text-2xl font-bold text-blue-600">{totalSales}</div>
-          <div className="text-sm text-gray-600">Total Sales</div>
-        </div>
-        <div className="bg-white p-4 sm:p-6 rounded-lg shadow">
-          <div className="text-xl sm:text-2xl font-bold text-green-600">{formatCurrency(totalRevenue)}</div>
-          <div className="text-sm text-gray-600">Total Revenue</div>
-        </div>
-        <div className="bg-white p-4 sm:p-6 rounded-lg shadow">
-          <div className="text-xl sm:text-2xl font-bold text-purple-600">
-            {totalSales > 0 ? formatCurrency(totalRevenue / totalSales) : formatCurrency(0)}
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6">
+          <div className="bg-white p-4 sm:p-6 rounded-lg shadow text-center">
+            <Loader size="small" />
+            <div className="text-sm text-gray-600 mt-2">Loading...</div>
           </div>
-          <div className="text-sm text-gray-600">Average Sale</div>
+          <div className="bg-white p-4 sm:p-6 rounded-lg shadow text-center">
+            <Loader size="small" />
+            <div className="text-sm text-gray-600 mt-2">Loading...</div>
+          </div>
+          <div className="bg-white p-4 sm:p-6 rounded-lg shadow text-center">
+            <Loader size="small" />
+            <div className="text-sm text-gray-600 mt-2">Loading...</div>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6">
+          <div className="bg-white p-4 sm:p-6 rounded-lg shadow">
+            <div className="text-xl sm:text-2xl font-bold text-blue-600">{totalSales}</div>
+            <div className="text-sm text-gray-600">Total Sales</div>
+          </div>
+          <div className="bg-white p-4 sm:p-6 rounded-lg shadow">
+            <div className="text-xl sm:text-2xl font-bold text-green-600">{formatCurrency(totalRevenue)}</div>
+            <div className="text-sm text-gray-600">Total Revenue</div>
+          </div>
+          <div className="bg-white p-4 sm:p-6 rounded-lg shadow">
+            <div className="text-xl sm:text-2xl font-bold text-purple-600">
+              {totalSales > 0 ? formatCurrency(totalRevenue / totalSales) : formatCurrency(0)}
+            </div>
+            <div className="text-sm text-gray-600">Average Sale</div>
+          </div>
+        </div>
+      )}
 
       {/* Sales Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         {loading ? (
-          <div className="p-6 text-center">Loading sales data...</div>
+          <div className="text-center py-8">
+            <Loader />
+            <p className="mt-4 text-gray-600">Loading sales data...</p>
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
