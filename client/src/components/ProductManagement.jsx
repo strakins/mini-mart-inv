@@ -2,13 +2,16 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useCurrency } from '../context/CurrencyContext';
 import { showToast } from '../utils/toast';
+import Loader from './Loader'; // Import your Loader component
 
 const ProductManagement = () => {
   const { formatCurrency } = useCurrency();
   const [products, setProducts] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // Changed to true initially
+  const [saving, setSaving] = useState(false); // Separate state for form saving
+  const [deleting, setDeleting] = useState(false); // Separate state for delete operations
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -25,17 +28,20 @@ const ProductManagement = () => {
 
   const fetchProducts = async () => {
     try {
+      setLoading(true);
       const response = await axios.get('/products');
       setProducts(response.data);
     } catch (error) {
       console.error('Error fetching products:', error);
       showToast.error('Failed to load products');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    setSaving(true);
 
     try {
       const productData = {
@@ -54,12 +60,12 @@ const ProductManagement = () => {
       }
 
       resetForm();
-      fetchProducts();
+      await fetchProducts(); // Refresh the products list
     } catch (error) {
       console.error('Error saving product:', error);
       showToast.error(error.response?.data?.message || 'Error saving product');
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
@@ -80,12 +86,15 @@ const ProductManagement = () => {
   const handleDelete = async (productId) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
       try {
+        setDeleting(true);
         await axios.delete(`/products/${productId}`);
         showToast.success('Product deleted successfully!');
-        fetchProducts();
+        await fetchProducts(); // Refresh the products list
       } catch (error) {
         console.error('Error deleting product:', error);
         showToast.error('Error deleting product');
+      } finally {
+        setDeleting(false);
       }
     }
   };
@@ -106,15 +115,37 @@ const ProductManagement = () => {
 
   const lowStockProducts = products.filter(p => p.quantity <= p.minStockLevel);
 
+  // Show loader while loading products initially
+  if (loading && products.length === 0) {
+    return (
+      <div className="p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+          <h2 className="text-xl sm:text-2xl font-bold">Product Management</h2>
+          <button
+            disabled
+            className="bg-indigo-400 text-white px-4 py-2 rounded-lg text-sm sm:text-base cursor-not-allowed"
+          >
+            Add New Product
+          </button>
+        </div>
+        <div className="text-center py-8">
+          <Loader />
+          <p className="mt-4 text-gray-600">Loading products...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 sm:p-6">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <h2 className="text-xl sm:text-2xl font-bold">Product Management</h2>
         <button
           onClick={() => setShowForm(true)}
-          className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 text-sm sm:text-base"
+          disabled={loading}
+          className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50 text-sm sm:text-base"
         >
-          Add New Product
+          {loading ? 'Loading...' : 'Add New Product'}
         </button>
       </div>
 
@@ -220,15 +251,23 @@ const ProductManagement = () => {
             <div className="md:col-span-2 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
               <button
                 type="submit"
-                disabled={loading}
+                disabled={saving}
                 className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50 text-sm sm:text-base"
               >
-                {loading ? 'Saving...' : (editingProduct ? 'Update Product' : 'Add Product')}
+                {saving ? (
+                  <span className="flex items-center justify-center">
+                    <Loader size="small" />
+                    <span className="ml-2">Saving...</span>
+                  </span>
+                ) : (
+                  editingProduct ? 'Update Product' : 'Add Product'
+                )}
               </button>
               <button
                 type="button"
                 onClick={resetForm}
-                className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 text-sm sm:text-base"
+                disabled={saving}
+                className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 disabled:opacity-50 text-sm sm:text-base"
               >
                 Cancel
               </button>
@@ -239,79 +278,88 @@ const ProductManagement = () => {
 
       {/* Products Table - Responsive */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Product
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
-                  Price
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Stock
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
-                  Category
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {products.map((product) => (
-                <tr key={product._id} className={product.quantity <= product.minStockLevel ? 'bg-yellow-50' : ''}>
-                  <td className="px-4 py-4">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">{product.name}</div>
-                      {product.barcode && (
-                        <div className="text-sm text-gray-500 sm:hidden">Barcode: {product.barcode}</div>
-                      )}
-                      <div className="text-sm text-gray-500 sm:hidden">
-                        {formatCurrency(product.price)}
-                      </div>
-                      {product.category && (
-                        <div className="text-sm text-gray-500 md:hidden">
-                          {product.category}
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 hidden sm:table-cell">
-                    {formatCurrency(product.price)}
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{product.quantity}</div>
-                    {product.quantity <= product.minStockLevel && (
-                      <div className="text-xs text-red-600">Low Stock</div>
-                    )}
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 hidden md:table-cell">
-                    {product.category || '-'}
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex flex-col sm:flex-row sm:space-x-2 space-y-1 sm:space-y-0">
-                      <button
-                        onClick={() => handleEdit(product)}
-                        className="text-indigo-600 hover:text-indigo-900 text-left sm:text-center"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(product._id)}
-                        className="text-red-600 hover:text-red-900 text-left sm:text-center"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </td>
+        {loading ? (
+          <div className="text-center py-8">
+            <Loader />
+            <p className="mt-2 text-gray-600">Refreshing products...</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Product
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                    Price
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Stock
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
+                    Category
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {products.map((product) => (
+                  <tr key={product._id} className={product.quantity <= product.minStockLevel ? 'bg-yellow-50' : ''}>
+                    <td className="px-4 py-4">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">{product.name}</div>
+                        {product.barcode && (
+                          <div className="text-sm text-gray-500 sm:hidden">Barcode: {product.barcode}</div>
+                        )}
+                        <div className="text-sm text-gray-500 sm:hidden">
+                          {formatCurrency(product.price)}
+                        </div>
+                        {product.category && (
+                          <div className="text-sm text-gray-500 md:hidden">
+                            {product.category}
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 hidden sm:table-cell">
+                      {formatCurrency(product.price)}
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{product.quantity}</div>
+                      {product.quantity <= product.minStockLevel && (
+                        <div className="text-xs text-red-600">Low Stock</div>
+                      )}
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 hidden md:table-cell">
+                      {product.category || '-'}
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex flex-col sm:flex-row sm:space-x-2 space-y-1 sm:space-y-0">
+                        <button
+                          onClick={() => handleEdit(product)}
+                          disabled={loading || deleting}
+                          className="text-indigo-600 hover:text-indigo-900 disabled:opacity-50 text-left sm:text-center"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(product._id)}
+                          disabled={loading || deleting}
+                          className="text-red-600 hover:text-red-900 disabled:opacity-50 text-left sm:text-center"
+                        >
+                          {deleting ? 'Deleting...' : 'Delete'}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
