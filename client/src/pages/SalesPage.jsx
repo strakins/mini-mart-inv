@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCurrency } from '../context/CurrencyContext';
 import { showToast } from '../utils/toast';
 import { generateReceiptPDF } from '../utils/recieptGenerator';
+import Loader from '../components/Loader'; // Import your Loader component
 
 const SalesPage = () => {
   const { user } = useAuth();
@@ -11,7 +12,8 @@ const SalesPage = () => {
   const [products, setProducts] = useState([]);
   const [cart, setCart] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // Changed to true initially
+  const [processingSale, setProcessingSale] = useState(false); // Separate state for sale processing
   const [isCartOpen, setIsCartOpen] = useState(false);
 
   useEffect(() => {
@@ -20,12 +22,15 @@ const SalesPage = () => {
 
   const fetchProducts = async () => {
     try {
+      setLoading(true);
       const response = await axios.get('/products');
       setProducts(response.data);
-      console.log(response.data)
+      console.log(response.data);
     } catch (error) {
       console.error('Error fetching products:', error);
       showToast.error('Failed to load products');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -36,11 +41,14 @@ const SalesPage = () => {
     }
 
     try {
+      setLoading(true);
       const response = await axios.get(`/products/search?q=${searchTerm}`);
       setProducts(response.data);
     } catch (error) {
       console.error('Error searching products:', error);
       showToast.error('Search failed');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -95,7 +103,7 @@ const SalesPage = () => {
       return;
     }
 
-    setLoading(true);
+    setProcessingSale(true);
     const loadingToast = showToast.loading('Processing sale...');
 
     try {
@@ -124,7 +132,7 @@ const SalesPage = () => {
         autoClose: 5000
       });
     } finally {
-      setLoading(false);
+      setProcessingSale(false);
     }
   };
 
@@ -136,6 +144,18 @@ const SalesPage = () => {
 
   // Mobile cart badge
   const cartItemCount = cart.reduce((total, item) => total + item.quantity, 0);
+
+  // Show loader while loading products
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center py-8">
+          <Loader />
+          <p className="mt-4 text-gray-600">Loading products...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -310,10 +330,10 @@ const SalesPage = () => {
                   
                   <button
                     onClick={processSale}
-                    disabled={loading || cart.length === 0}
+                    disabled={processingSale || cart.length === 0}
                     className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
                   >
-                    {loading ? 'Processing...' : 'Complete Sale'}
+                    {processingSale ? 'Processing...' : 'Complete Sale'}
                   </button>
                 </div>
               </>
@@ -414,10 +434,10 @@ const SalesPage = () => {
                     </button>
                     <button
                       onClick={processSale}
-                      disabled={loading}
+                      disabled={processingSale}
                       className="flex-1 bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium"
                     >
-                      {loading ? 'Processing...' : 'Checkout'}
+                      {processingSale ? 'Processing...' : 'Checkout'}
                     </button>
                   </div>
                 </div>

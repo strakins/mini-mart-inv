@@ -5,6 +5,7 @@ import SalesReport from '../components/SalesReport';
 import CurrencySettings from '../components/CurrencySettings';
 import { getDashboardStats } from '../utils/dashboardStats';
 import { useCurrency } from '../context/CurrencyContext';
+import Loader from '../components/Loader'
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -68,7 +69,10 @@ const AdminDashboard = () => {
       </div>
       
       {loading ? (
-        <div className="text-center py-8">Loading dashboard data...</div>
+        <div className="text-center py-8">
+          {/* Loading dashboard data... */}
+          <Loader />
+        </div>
       ) : (
         <>
           {/* Stats Cards - Responsive grid */}
