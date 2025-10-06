@@ -9,7 +9,8 @@ const UserManagement = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [userSales, setUserSales] = useState([]);
   const [salesStats, setSalesStats] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // Changed to true initially
+  const [loadingSales, setLoadingSales] = useState(false); // Separate state for sales loading
   const { formatCurrency } = useCurrency();
 
   useEffect(() => {
@@ -24,12 +25,14 @@ const UserManagement = () => {
     } catch (error) {
       console.error('Error fetching users:', error);
       showToast.error('Failed to load users');
+    } finally {
+      setLoading(false);
     }
   };
 
   const fetchUserSales = async (userId) => {
     try {
-      setLoading(true);
+      setLoadingSales(true);
       const response = await axios.get(`/users/${userId}/sales`);
       setUserSales(response.data.sales);
       setSalesStats(response.data.statistics);
@@ -38,14 +41,15 @@ const UserManagement = () => {
       console.error('Error fetching user sales:', error);
       showToast.error('Failed to load user sales');
     } finally {
-      setLoading(false);
+      setLoadingSales(false);
     }
   };
 
   const updateUserRole = async (userId, newRole) => {
     try {
+      setLoading(true);
       await axios.put(`/users/${userId}/role`, { role: newRole });
-      fetchUsers();
+      await fetchUsers(); // Refresh the users list
       if (selectedUser && selectedUser._id === userId) {
         setSelectedUser({ ...selectedUser, role: newRole });
       }
@@ -53,37 +57,55 @@ const UserManagement = () => {
     } catch (error) {
       console.error('Error updating user role:', error);
       showToast.error('Error updating user role');
+    } finally {
+      setLoading(false);
     }
   };
 
   const toggleUserStatus = async (userId, currentStatus) => {
     try {
+      setLoading(true);
       await axios.put(`/users/${userId}/status`, { isActive: !currentStatus });
-      fetchUsers();
+      await fetchUsers(); // Refresh the users list
       showToast.success(`User ${!currentStatus ? 'activated' : 'deactivated'}`);
     } catch (error) {
       console.error('Error updating user status:', error);
       showToast.error('Error updating user status');
+    } finally {
+      setLoading(false);
     }
   };
+
+  // Show loader while loading users initially
+  if (loading && users.length === 0) {
+    return (
+      <div className="p-4 sm:p-6">
+        <h2 className="text-xl sm:text-2xl font-bold mb-6">User Management</h2>
+        <div className="text-center py-8">
+          <Loader />
+          <p className="mt-4 text-gray-600">Loading users...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 sm:p-6">
       <h2 className="text-xl sm:text-2xl font-bold mb-6">User Management</h2>
 
-      {
-        loading ? (
-          <div className="text-center py-8">
-          {/* Loading dashboard data... */}
-          <Loader />
-        </div> 
-        ) :
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
-          {/* Users List */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold">All Users</h3>
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
+        {/* Users List */}
+        <div className="bg-white rounded-lg shadow">
+          <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-semibold">All Users</h3>
+          </div>
+          
+          {loading ? (
+            <div className="text-center py-8">
+              <Loader />
+              <p className="mt-2 text-gray-600">Updating users...</p>
             </div>
+          ) : (
             <div className="divide-y divide-gray-200 max-h-[600px] overflow-y-auto">
               {users.map((user) => (
                 <div key={user._id} className="px-4 sm:px-6 py-4">
@@ -117,22 +139,25 @@ const UserManagement = () => {
                     <div className="flex flex-col sm:flex-row gap-2">
                       <button
                         onClick={() => fetchUserSales(user._id)}
-                        className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 whitespace-nowrap"
+                        disabled={loadingSales}
+                        className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 disabled:opacity-50 whitespace-nowrap"
                       >
-                        View Sales
+                        {loadingSales && selectedUser?._id === user._id ? 'Loading...' : 'View Sales'}
                       </button>
                       
                       {user.role === 'sales-agent' ? (
                         <button
                           onClick={() => updateUserRole(user._id, 'admin')}
-                          className="text-sm bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700 whitespace-nowrap"
+                          disabled={loading}
+                          className="text-sm bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700 disabled:opacity-50 whitespace-nowrap"
                         >
                           Make Admin
                         </button>
                       ) : (
                         <button
                           onClick={() => updateUserRole(user._id, 'sales-agent')}
-                          className="text-sm bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-700 whitespace-nowrap"
+                          disabled={loading}
+                          className="text-sm bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-700 disabled:opacity-50 whitespace-nowrap"
                         >
                           Remove Admin
                         </button>
@@ -140,7 +165,8 @@ const UserManagement = () => {
                       
                       <button
                         onClick={() => toggleUserStatus(user._id, user.isActive)}
-                        className={`text-sm px-3 py-1 rounded whitespace-nowrap ${
+                        disabled={loading}
+                        className={`text-sm px-3 py-1 rounded whitespace-nowrap disabled:opacity-50 ${
                           user.isActive
                             ? 'bg-red-600 text-white hover:bg-red-700'
                             : 'bg-green-600 text-white hover:bg-green-700'
@@ -153,87 +179,90 @@ const UserManagement = () => {
                 </div>
               ))}
             </div>
-          </div>
+          )}
+        </div>
 
-          {/* User Sales Details */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold">
-                {selectedUser ? `${selectedUser.name}'s Sales` : 'User Sales Details'}
-              </h3>
-              {selectedUser && (
-                <p className="text-sm text-gray-600">Click on a user to view their sales</p>
-              )}
-            </div>
-
-            {loading ? (
-              <div className="p-6 text-center">Loading sales data...</div>
-            ) : selectedUser ? (
-              <div className="p-4 sm:p-6">
-                {/* Sales Statistics */}
-                {salesStats && (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                    <div className="bg-blue-50 p-4 rounded-lg text-center">
-                      <div className="text-xl sm:text-2xl font-bold text-blue-600">{salesStats.totalSales}</div>
-                      <div className="text-sm text-blue-600">Total Sales</div>
-                    </div>
-                    <div className="bg-green-50 p-4 rounded-lg text-center">
-                      <div className="text-xl sm:text-2xl font-bold text-green-600">
-                        {formatCurrency(salesStats.totalRevenue)}
-                      </div>
-                      <div className="text-sm text-green-600">Total Revenue</div>
-                    </div>
-                    <div className="bg-purple-50 p-4 rounded-lg text-center">
-                      <div className="text-xl sm:text-2xl font-bold text-purple-600">
-                        {formatCurrency(salesStats.averageSale)}
-                      </div>
-                      <div className="text-sm text-purple-600">Avg. Sale</div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Sales List */}
-                <div className="space-y-4 max-h-96 overflow-y-auto">
-                  {userSales.map((sale) => (
-                    <div key={sale._id} className="border border-gray-200 rounded-lg p-3 sm:p-4">
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-2">
-                        <div>
-                          <div className="font-medium text-sm">Sale: {sale.saleId}</div>
-                          <div className="text-xs sm:text-sm text-gray-500">
-                            {new Date(sale.createdAt).toLocaleString()}
-                          </div>
-                        </div>
-                        <div className="text-lg font-bold text-green-600">
-                          {formatCurrency(sale.totalAmount)}
-                        </div>
-                      </div>
-                      
-                      <div className="text-xs sm:text-sm space-y-1">
-                        {sale.items.map((item, index) => (
-                          <div key={index} className="flex justify-between">
-                            <span>{item.product.name} x {item.quantity}</span>
-                            <span>{formatCurrency(item.price * item.quantity)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                  
-                  {userSales.length === 0 && (
-                    <div className="text-center text-gray-500 py-8">
-                      No sales records found for this user.
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="p-6 text-center text-gray-500">
-                Select a user to view their sales details
-              </div>
+        {/* User Sales Details */}
+        <div className="bg-white rounded-lg shadow">
+          <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-semibold">
+              {selectedUser ? `${selectedUser.name}'s Sales` : 'User Sales Details'}
+            </h3>
+            {selectedUser && (
+              <p className="text-sm text-gray-600">Click on a user to view their sales</p>
             )}
           </div>
-        </div> 
-      }     
+
+          {loadingSales ? (
+            <div className="text-center py-8">
+              <Loader />
+              <p className="mt-2 text-gray-600">Loading sales data...</p>
+            </div>
+          ) : selectedUser ? (
+            <div className="p-4 sm:p-6">
+              {/* Sales Statistics */}
+              {salesStats && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                  <div className="bg-blue-50 p-4 rounded-lg text-center">
+                    <div className="text-xl sm:text-2xl font-bold text-blue-600">{salesStats.totalSales}</div>
+                    <div className="text-sm text-blue-600">Total Sales</div>
+                  </div>
+                  <div className="bg-green-50 p-4 rounded-lg text-center">
+                    <div className="text-xl sm:text-2xl font-bold text-green-600">
+                      {formatCurrency(salesStats.totalRevenue)}
+                    </div>
+                    <div className="text-sm text-green-600">Total Revenue</div>
+                  </div>
+                  <div className="bg-purple-50 p-4 rounded-lg text-center">
+                    <div className="text-xl sm:text-2xl font-bold text-purple-600">
+                      {formatCurrency(salesStats.averageSale)}
+                    </div>
+                    <div className="text-sm text-purple-600">Avg. Sale</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Sales List */}
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                {userSales.map((sale) => (
+                  <div key={sale._id} className="border border-gray-200 rounded-lg p-3 sm:p-4">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-2">
+                      <div>
+                        <div className="font-medium text-sm">Sale: {sale.saleId}</div>
+                        <div className="text-xs sm:text-sm text-gray-500">
+                          {new Date(sale.createdAt).toLocaleString()}
+                        </div>
+                      </div>
+                      <div className="text-lg font-bold text-green-600">
+                        {formatCurrency(sale.totalAmount)}
+                      </div>
+                    </div>
+                    
+                    <div className="text-xs sm:text-sm space-y-1">
+                      {sale.items.map((item, index) => (
+                        <div key={index} className="flex justify-between">
+                          <span>{item.product.name} x {item.quantity}</span>
+                          <span>{formatCurrency(item.price * item.quantity)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                
+                {userSales.length === 0 && (
+                  <div className="text-center text-gray-500 py-8">
+                    No sales records found for this user.
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="p-6 text-center text-gray-500">
+              Select a user to view their sales details
+            </div>
+          )}
+        </div>
+      </div>     
     </div>
   );
 };
