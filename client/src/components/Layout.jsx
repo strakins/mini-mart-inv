@@ -149,6 +149,12 @@
 
 // export default Layout;
 
+
+// SECONF TRIAL
+
+// 
+
+
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -175,10 +181,10 @@ const Layout = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
-      {/* Navigation */}
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-100 flex flex-col"> 
+      {/* Navigation - Full width */}
+      <nav className="bg-white shadow-sm w-full">
+        <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
               <div className="flex-shrink-0">
@@ -244,7 +250,7 @@ const Layout = ({ children }) => {
 
         {/* Mobile menu */}
         {isMobileMenuOpen && (
-          <div className="sm:hidden">
+          <div className="sm:hidden w-full">
             <div className="pt-2 pb-3 space-y-1">
               {user?.role === 'admin' ? (
                 <>
@@ -298,13 +304,13 @@ const Layout = ({ children }) => {
       </nav>
 
       {/* Main content */}
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8 flex-1">
+      <main className="flex-1 w-full">
         {children}
       </main>
 
-      {/* Footer */}
-      <footer className="bg-gray-800 text-white py-4 sm:py-6 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Footer - Full width */}
+      <footer className="bg-gray-800 text-white py-4 sm:py-6 w-full">
+        <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row justify-between items-center space-y-3 sm:space-y-0">
             <div className="text-center sm:text-left">
               <p className="text-xs sm:text-sm">
