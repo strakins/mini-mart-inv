@@ -453,14 +453,12 @@
 
 // export default SalesPage;
 
-
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useCurrency } from '../context/CurrencyContext';
 import { showToast } from '../utils/toast';
 import { generateReceiptPDF } from '../utils/recieptGenerator';
-import Loader from '../components/Loader';
 
 const SalesPage = () => {
   const { user } = useAuth();
@@ -468,7 +466,7 @@ const SalesPage = () => {
   const [products, setProducts] = useState([]);
   const [cart, setCart] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Remove initial loading
   const [processingSale, setProcessingSale] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
 
@@ -496,7 +494,6 @@ const SalesPage = () => {
       setLoading(true);
       const response = await axios.get('/products');
       setProducts(response.data);
-      console.log(response.data);
     } catch (error) {
       console.error('Error fetching products:', error);
       showToast.error('Failed to load products');
@@ -604,7 +601,7 @@ const SalesPage = () => {
         render: 'Sale completed successfully!',
         type: 'success',
         isLoading: false,
-        autoClose: 3000
+        autoClose: 2000 // Shorter autoClose for faster feedback
       });
       
       fetchProducts();
@@ -614,7 +611,7 @@ const SalesPage = () => {
         render: error.response?.data?.message || 'Error processing sale',
         type: 'error',
         isLoading: false,
-        autoClose: 5000
+        autoClose: 3000 // Shorter error display
       });
     } finally {
       setProcessingSale(false);
@@ -629,18 +626,6 @@ const SalesPage = () => {
 
   // Mobile cart badge
   const cartItemCount = cart.reduce((total, item) => total + item.quantity, 0);
-
-  // Show loader while loading products
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-center py-8">
-          <Loader />
-          <p className="mt-4 text-gray-600">Loading products...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -696,12 +681,13 @@ const SalesPage = () => {
                     disabled={loading}
                     className="bg-indigo-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50 text-sm sm:text-base whitespace-nowrap"
                   >
-                    {loading ? 'Searching...' : 'Search'}
+                    {loading ? '...' : 'Search'}
                   </button>
                 </div>
                 {searchTerm && (
                   <p className="text-xs text-gray-500 mt-2">
                     Searching for: "{searchTerm}" • {products.length} product(s) found
+                    {loading && ' • Loading...'}
                   </p>
                 )}
               </div>
