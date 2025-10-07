@@ -319,11 +319,156 @@ import { formatCurrency } from "./currencyFormatter";
 // };
 
 
+import jsPDF from 'jspdf';
+
+export const generateReceiptPDF = (sale) => { 
+  const doc = new jsPDF();
+  
+  // Set margins and initial positions
+  const margin = 10;
+  let yPosition = margin;
+  
+  // Add company header
+  doc.setFontSize(16);
+  doc.setFont(undefined, 'bold');
+  doc.text('STORE INVENTORY', 105, yPosition, { align: 'center' });
+  yPosition += 8;
+  
+  // Store info
+  doc.setFontSize(8);
+  doc.setFont(undefined, 'normal');
+  doc.text('123 Store Street', 105, yPosition, { align: 'center' });
+  yPosition += 4;
+  doc.text('City, State 12345', 105, yPosition, { align: 'center' });
+  yPosition += 4;
+  doc.text('Phone: (123) 456-7890', 105, yPosition, { align: 'center' });
+  yPosition += 12;
+  
+  // Sale details
+  doc.setFontSize(10);
+  doc.text(`Receipt: ${sale.saleId || 'N/A'}`, margin, yPosition);
+  yPosition += 6;
+  doc.text(`Date: ${new Date(sale.createdAt).toLocaleString()}`, margin, yPosition);
+  yPosition += 6;
+  
+  // Safely get sales agent name - handle different data structures
+  let salesAgentName = 'System';
+  if (sale.salesAgent) {
+    if (typeof sale.salesAgent === 'string') {
+      salesAgentName = sale.salesAgent;
+    } else if (sale.salesAgent.name) {
+      salesAgentName = sale.salesAgent.name;
+    } else if (sale.salesAgent.username) {
+      salesAgentName = sale.salesAgent.username;
+    }
+  }
+  
+  doc.text(`Cashier: ${salesAgentName}`, margin, yPosition);
+  yPosition += 10;
+  
+  // Line separator
+  doc.line(margin, yPosition, 190, yPosition);
+  yPosition += 8;
+  
+  // Items header
+  doc.setFontSize(8);
+  doc.setFont(undefined, 'bold');
+  doc.text('ITEM', margin, yPosition);
+  doc.text('QTY', 80, yPosition);
+  doc.text('PRICE', 110, yPosition);
+  doc.text('TOTAL', 180, yPosition, { align: 'right' });
+  yPosition += 4;
+  
+  // Header underline
+  doc.line(margin, yPosition, 190, yPosition);
+  yPosition += 6;
+  
+  // Items
+  doc.setFont(undefined, 'normal');
+  sale.items.forEach((item) => {
+    // Check if we need a new page
+    if (yPosition > 250) {
+      doc.addPage();
+      yPosition = margin;
+    }
+    
+    // Item name (truncate if too long)
+    const itemName = item.name || item.product?.name || 'Unknown Product';
+    const displayName = itemName.length > 35 
+      ? itemName.substring(0, 35) + '...' 
+      : itemName;
+    
+    doc.text(displayName, margin, yPosition);
+    doc.text(item.quantity.toString(), 80, yPosition);
+    
+    // Format currency properly
+    const price = formatCurrency(item.price || 0);
+    const total = formatCurrency((item.price || 0) * item.quantity);
+    
+    doc.text(price, 110, yPosition);
+    doc.text(total, 180, yPosition, { align: 'right' });
+    
+    yPosition += 6;
+  });
+  
+  // Line separator before total
+  yPosition += 5;
+  doc.line(margin, yPosition, 190, yPosition);
+  yPosition += 8;
+  
+  // Total
+  doc.setFontSize(12);
+  doc.setFont(undefined, 'bold');
+  doc.text('TOTAL:', margin, yPosition);
+  
+  const totalAmount = formatCurrency(sale.totalAmount || 0);
+  doc.text(totalAmount, 180, yPosition, { align: 'right' });
+  
+  // Payment method
+  yPosition += 8;
+  doc.setFontSize(8);
+  doc.setFont(undefined, 'normal');
+  doc.text(`Payment Method: ${(sale.paymentMethod || 'cash').toUpperCase()}`, margin, yPosition);
+  
+  // Footer
+  yPosition += 15;
+  doc.setFontSize(7);
+  doc.text('Thank you for your purchase!', 105, yPosition, { align: 'center' });
+  doc.text('Please keep this receipt for your records', 105, yPosition + 4, { align: 'center' });
+  
+  // Save the PDF
+  const fileName = `receipt-${sale.saleId || Date.now()}.pdf`;
+  doc.save(fileName);
+};
+
+// Simple currency formatter
+export const formatCurrency = (amount) => {
+  if (typeof amount !== 'number') {
+    amount = parseFloat(amount) || 0;
+  }
+  
+  return new Intl.NumberFormat('en-NG', {
+    style: 'currency',
+    currency: 'NGN',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(amount);
+};
+
 // Improved HTML receipt for thermal printers
 export const generateHTMLReceipt = (sale) => {
-  // Safely get sales agent name
-  const salesAgentName = sale.salesAgent?.name || sale.salesAgent?.username || 'System';
-  
+  // Safely get sales agent name - handle different data structures
+  let salesAgentName = 'System';
+  if (sale.salesAgent) {
+    if (typeof sale.salesAgent === 'string') {
+      salesAgentName = sale.salesAgent;
+    } else if (sale.salesAgent.name) {
+      salesAgentName = sale.salesAgent.name;
+    } else if (sale.salesAgent.username) {
+      salesAgentName = sale.salesAgent.username;
+    }
+  }
+
   const receiptHTML = `
     <!DOCTYPE html>
     <html>
@@ -339,7 +484,7 @@ export const generateHTMLReceipt = (sale) => {
           font-family: 'Courier New', monospace; 
           margin: 0;
           padding: 5px;
-          width: 80mm; /* Standard receipt printer width */
+          width: 80mm;
           max-width: 80mm;
           background: white;
           font-size: 12px;
@@ -443,7 +588,6 @@ export const generateHTMLReceipt = (sale) => {
           .no-print { 
             display: none !important; 
           }
-          /* Thermal printer optimization */
           * {
             -webkit-print-color-adjust: exact;
             color-adjust: exact;
@@ -489,14 +633,16 @@ export const generateHTMLReceipt = (sale) => {
           
           ${sale.items.map(item => {
             const itemName = item.name || item.product?.name || 'Unknown Product';
-            // Truncate long product names for receipt
             const displayName = itemName.length > 20 ? itemName.substring(0, 20) + '...' : itemName;
+            const price = formatCurrency(item.price || 0);
+            const total = formatCurrency((item.price || 0) * item.quantity);
+            
             return `
               <div class="item-row">
                 <div class="item-name">${displayName}</div>
                 <div class="item-qty">${item.quantity}</div>
-                <div class="item-price">${formatCurrency(item.price)}</div>
-                <div class="item-total">${formatCurrency(item.price * item.quantity)}</div>
+                <div class="item-price">${price}</div>
+                <div class="item-total">${total}</div>
               </div>
             `;
           }).join('')}
@@ -507,7 +653,7 @@ export const generateHTMLReceipt = (sale) => {
         <div class="total-section">
           <div class="total-row">
             <span>TOTAL:</span>
-            <span>${formatCurrency(sale.totalAmount)}</span>
+            <span>${formatCurrency(sale.totalAmount || 0)}</span>
           </div>
         </div>
         
@@ -536,7 +682,7 @@ export const generateHTMLReceipt = (sale) => {
     </html>
   `;
   
-  const receiptWindow = window.open('', '_blank', 'width=320,height=480'); // Smaller window for receipt preview
+  const receiptWindow = window.open('', '_blank', 'width=320,height=480');
   receiptWindow.document.write(receiptHTML);
   receiptWindow.document.close();
 };
